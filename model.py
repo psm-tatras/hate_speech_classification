@@ -94,7 +94,7 @@ class AttentionClassifier():
         self.encoder_layer = HFEncoder()
         self.attention_layer = LuongAttention(attention_dim)
         self.classifier = tf.keras.layers.Dense(nb_classes, activation="softmax")
-        self.optimizer = tf.keras.optimizers.Adam(0.00001)
+        self.optimizer = tf.keras.optimizers.Adam(learning_rate)
         self.checkpoint = tf.train.Checkpoint(enc=self.encoder_layer, attn= self.attention_layer, cls=self.classifier)
         self.weight_manager = tf.train.CheckpointManager(self.checkpoint,save_path,max_to_keep=1)
 
@@ -177,6 +177,8 @@ class AttentionClassifier():
 
     def predict_with_explain(self,input_text,ind2label):
         word_ids,pred,attention_score = self.predict(input_text)
+        label = ind2label[str(np.argmax(pred,-1)[0])]
+        print(label)
         attention_score = tf.squeeze(tf.squeeze(attention_score,-1),0)
         attention_score = tf.make_ndarray(tf.make_tensor_proto(attention_score))
         word_span = self.get_subword_span(input_text)
@@ -188,7 +190,7 @@ class AttentionClassifier():
             word = ''.join(words)
             wa = sum(a_score)
             word_attention.append([word,wa])
-        return word_attention
+        return word_attention,label
 
     def get_subword_span(self,input_text):
         sub_word_ids = self.encoder_layer.preprocess_layer.encode(input_text)
